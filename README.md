@@ -1,5 +1,10 @@
 # Remember
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?logo=javascript&logoColor=black)
+![Tailwind](https://img.shields.io/badge/Tailwind_CSS-CDN-06B6D4?logo=tailwindcss&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8?logo=pwa&logoColor=white)
+
 一款基于浏览器的翻牌记忆力训练小游戏，专注于结合最新记忆训练研究成果与易于上手的交互设计。从经典配对玩法出发，逐步引入限时挑战、每日挑战、连击评分、统计分析、自适应调节、间隔复现、回忆测验，以及 N-back 等多模式训练，适合自我练习与教学演示。
 
 ## ✨ 特性速览
