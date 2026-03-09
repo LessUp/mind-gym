@@ -2,8 +2,19 @@
   "name": "mind-gym",
   "version": "1.0.0",
   "private": true,
+  "description": "Browser-based card-flip memory training game with multiple modes, adaptive difficulty, and PWA support",
+  "keywords": ["memory", "training", "card-match", "pwa", "n-back", "adaptive"],
+  "author": "LessUp",
+  "license": "MIT",
+  "homepage": "https://lessup.github.io/mind-gym/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LessUp/mind-gym.git"
+  },
   "scripts": {
     "test": "jest",
+    "lint": "npx prettier --check '**/*.{js,json,md,html}'",
+    "format": "npx prettier --write '**/*.{js,json,md,html}'",
     "prepare:deploy": "bash scripts/prepare-deploy.sh"
   },
   "devDependencies": {

@@ -177,6 +177,18 @@ function logError(event, detail = {}) {
   }
 }
 
+function showModal(el) {
+  if (!el) return;
+  el.classList.remove('hidden');
+  el.classList.add('flex');
+}
+
+function hideModal(el) {
+  if (!el) return;
+  el.classList.add('hidden');
+  el.classList.remove('flex');
+}
+
 function getAccent() {
   const a = settings.accent || 'indigo';
   return ACCENTS[a] || ACCENTS.indigo;
@@ -295,14 +307,10 @@ function updateStatsUI() {
 }
 function openStats() {
   updateStatsUI();
-  if (!statsModal) return;
-  statsModal.classList.remove('hidden');
-  statsModal.classList.add('flex');
+  showModal(statsModal);
 }
 function closeStats() {
-  if (!statsModal) return;
-  statsModal.classList.add('hidden');
-  statsModal.classList.remove('flex');
+  hideModal(statsModal);
 }
 
 function getRating(elapsedSec, movesCount, diffKey, usedHints, comboMax = 0) {
@@ -432,7 +440,8 @@ function updateBestUI() {
   if (!b) {
     bestEl.textContent = "—";
   } else {
-    bestEl.textContent = `${formatTime(b.time)} · ${b.moves}步`;
+    const t = i18n();
+    bestEl.textContent = `${formatTime(b.time)} · ${b.moves}${t.bestSteps}`;
   }
 }
 
@@ -612,7 +621,7 @@ function initGame(diffKey) {
   updateProgressUI();
   applyAccentToDOM();
   updateStatsOnNewGame();
-  if (winModal) { winModal.classList.add("hidden"); winModal.classList.remove("flex"); }
+  hideModal(winModal);
   const prevSec = Math.max(0, Number(assist.previewSec || 0));
   if (prevSec > 0) {
     isPreviewing = true;
@@ -648,8 +657,7 @@ function onWin() {
     maxCombo: maxComboThisGame,
   });
   renderRating(stars);
-  winModal.classList.remove("hidden");
-  winModal.classList.add("flex");
+  showModal(winModal);
   sfx("win");
   vibrateMs(120);
   updateStatsOnWin();
@@ -679,15 +687,14 @@ function onTimeUp() {
   lockBoard = true;
   paused = true;
   logLifecycle('time_up', { difficulty: currentDifficulty, elapsed, moves });
-  if (loseModal) { loseModal.classList.remove('hidden'); loseModal.classList.add('flex'); }
+  showModal(loseModal);
   sfx('mismatch');
   vibrateMs(100);
   updateAdaptiveOnEnd(false, 0, currentDifficulty);
 }
 
 function closeModal() {
-  winModal.classList.add("hidden");
-  winModal.classList.remove("flex");
+  hideModal(winModal);
 }
 
 function shouldAutoShowGuide() {
@@ -701,8 +708,7 @@ function markGuideSeen() {
 function openGuideModal(isAuto) {
   if (!guideModal) return;
   if (guideNoShow) guideNoShow.checked = false;
-  guideModal.classList.remove('hidden');
-  guideModal.classList.add('flex');
+  showModal(guideModal);
   if (isAuto) {
     markGuideSeen();
   }
@@ -713,8 +719,7 @@ function closeGuideModal() {
   if (guideNoShow && guideNoShow.checked) {
     __RememberStorage__.hideGuide(GUIDE_KEY);
   }
-  guideModal.classList.add('hidden');
-  guideModal.classList.remove('flex');
+  hideModal(guideModal);
 }
 
 function maybeShowGuideOnFirstVisit() {
@@ -750,14 +755,14 @@ if (typeof document !== 'undefined') {
     onCloseModal: closeModal,
     onPause: togglePause,
     onResume: resumeGame,
-    onFailRetry: () => { if (loseModal) { loseModal.classList.add('hidden'); loseModal.classList.remove('flex'); } initGame(difficultyEl.value); },
-    onFailClose: () => { if (loseModal) { loseModal.classList.add('hidden'); loseModal.classList.remove('flex'); } },
+    onFailRetry: () => { hideModal(loseModal); initGame(difficultyEl.value); },
+    onFailClose: () => { hideModal(loseModal); },
     onHint: useHint,
-    onOpenSettings: () => { applySettingsToUI(); settingsModal.classList.remove("hidden"); settingsModal.classList.add("flex"); },
+    onOpenSettings: () => { applySettingsToUI(); showModal(settingsModal); },
     onGuideOpen: () => openGuideModal(false),
     onGuideClose: () => closeGuideModal(),
     onGuideModalBackdrop: (e) => { if (e.target === guideModal) closeGuideModal(); },
-    onSettingsCancel: () => { settingsModal.classList.add("hidden"); settingsModal.classList.remove("flex"); },
+    onSettingsCancel: () => { hideModal(settingsModal); },
     onSettingsSave: () => {
       const prevCardFace = settings.cardFace;
       settings.sound = !!settingSound.checked;
@@ -783,8 +788,7 @@ if (typeof document !== 'undefined') {
       applyTheme();
       applyMotionPreference();
       if (countdownConfigEl) countdownConfigEl.classList.toggle('hidden', !isCountdownMode());
-      settingsModal.classList.add("hidden");
-      settingsModal.classList.remove("flex");
+      hideModal(settingsModal);
       applyLanguage();
       initGame(difficultyEl.value);
     },
@@ -805,9 +809,7 @@ if (typeof document !== 'undefined') {
     },
     onAchievementsOpen: () => { openAchievements(); },
     onAchievementsClose: () => {
-      if (!achievementsModal) return;
-      achievementsModal.classList.add('hidden');
-      achievementsModal.classList.remove('flex');
+      hideModal(achievementsModal);
       if (achievementsNew) achievementsNew.classList.add('hidden');
     },
     onDailyOpen: () => {
@@ -817,40 +819,26 @@ if (typeof document !== 'undefined') {
         const status = __RememberStorage__.isDailyDone(date, difficultyEl.value) ? t.completed : t.notCompleted;
         dailyInfoEl.textContent = `${t.today} ${date} · ${t.difficulty}：${difficultyEl.options[difficultyEl.selectedIndex].text} · ${t.status}：${status}`;
       }
-      if (dailyModal) {
-        dailyModal.classList.remove('hidden');
-        dailyModal.classList.add('flex');
-      }
+      showModal(dailyModal);
     },
     onDailyClose: () => {
-      if (dailyModal) {
-        dailyModal.classList.add('hidden');
-        dailyModal.classList.remove('flex');
-      }
+      hideModal(dailyModal);
     },
     onDailyStart: () => {
       dailyActive = true;
       dailySeed = seedFromDate(todayStr(), difficultyEl.value, settings.cardFace || 'emoji');
-      if (dailyModal) {
-        dailyModal.classList.add('hidden');
-        dailyModal.classList.remove('flex');
-      }
+      hideModal(dailyModal);
       showToast(i18n().toastDailyStarted);
       initGame(difficultyEl.value);
     },
     onStatsOpen: openStats,
     onStatsClose: closeStats,
     onNbackOpen: () => {
-      if (nbackModal) {
-        nbackModal.classList.remove('hidden');
-        nbackModal.classList.add('flex');
-      }
+      showModal(nbackModal);
     },
     onNbackClose: () => {
-      if (!nbackModal) return;
       if (nbackRunning) stopNBack();
-      nbackModal.classList.add('hidden');
-      nbackModal.classList.remove('flex');
+      hideModal(nbackModal);
     },
     onNbackToggle: () => {
       if (nbackRunning) stopNBack();
@@ -879,10 +867,7 @@ if (typeof document !== 'undefined') {
       }
     },
     onRecallSkip: () => {
-      if (recallModal) {
-        recallModal.classList.add('hidden');
-        recallModal.classList.remove('flex');
-      }
+      hideModal(recallModal);
     },
     onRecallSubmit: submitRecallTest,
     onKeyDown: handleKeyDown,
@@ -1025,8 +1010,7 @@ function openRecallTest() {
       return `<label class="flex items-center gap-2 border rounded-md p-2"><input type="checkbox" data-v="${ev}" class="h-4 w-4"/><span class="text-xl">${ev}</span></label>`;
     }
   }).join('');
-  recallModal.classList.remove('hidden');
-  recallModal.classList.add('flex');
+  showModal(recallModal);
 }
 
 function submitRecallTest() {
@@ -1046,8 +1030,7 @@ function submitRecallTest() {
   updateStatsUI();
   const t = i18n();
   showToast(`${t.recallResult} · ${t.statsPrecision} ${Math.round(prec*100)}% · ${t.statsRecall} ${Math.round(rec*100)}%`);
-  recallModal.classList.add('hidden');
-  recallModal.classList.remove('flex');
+  hideModal(recallModal);
 }
 
 function currentLang() {
@@ -1206,44 +1189,41 @@ function getPoolForTheme(theme) {
   return __RememberPools__.getPoolForTheme(theme);
 }
 
+function buildDeckItems(picks) {
+  const deck = [];
+  picks.forEach((item, i) => {
+    deck.push({ v: item.v, id: `${item.v}-${i}-a`, type: item.type, color: item.color });
+    deck.push({ v: item.v, id: `${item.v}-${i}-b`, type: item.type, color: item.color });
+  });
+  return deck;
+}
+
 function createDeck(pairs) {
   const theme = settings.cardFace || 'emoji';
   const pool = getPoolForTheme(theme);
-  let picks;
   if (dailyActive) {
     const rng = mulberry32(dailySeed);
     const poolCopy = pool.slice();
     seededShuffle(poolCopy, rng);
-    picks = poolCopy.slice(0, pairs);
-    const deck = [];
-    picks.forEach((item, i) => {
-      deck.push({ v: item.v, id: `${item.v}-${i}-a`, type: item.type, color: item.color });
-      deck.push({ v: item.v, id: `${item.v}-${i}-b`, type: item.type, color: item.color });
-    });
-    return seededShuffle(deck, rng);
-  } else {
-    if (settings.spaced) {
-      picks = pickWithSpaced(theme, pool, pairs);
-    } else {
-      shuffle(pool);
-      picks = pool.slice(0, pairs);
-    }
-    const deck = [];
-    picks.forEach((item, i) => {
-      deck.push({ v: item.v, id: `${item.v}-${i}-a`, type: item.type, color: item.color });
-      deck.push({ v: item.v, id: `${item.v}-${i}-b`, type: item.type, color: item.color });
-    });
-    return shuffle(deck);
+    return seededShuffle(buildDeckItems(poolCopy.slice(0, pairs)), rng);
   }
+  let picks;
+  if (settings.spaced) {
+    picks = pickWithSpaced(theme, pool, pairs);
+  } else {
+    shuffle(pool);
+    picks = pool.slice(0, pairs);
+  }
+  return shuffle(buildDeckItems(picks));
 }
 
 const achievementsDef = [
-  { id: 'first_win', title: '初战告捷', desc: '完成任意一局' },
-  { id: 'easy_under_60', title: '轻松高手', desc: '简单60秒内通关' },
-  { id: 'medium_under_120', title: '熟能生巧', desc: '中等120秒内通关' },
-  { id: 'hard_under_180', title: '记忆大师', desc: '困难180秒内通关' },
-  { id: 'no_hint_win', title: '纯手动', desc: '不使用提示完成一局' },
-  { id: 'perfect_moves', title: '完美效率', desc: '零失误（步数=配对数）' },
+  { id: 'first_win', titleKey: 'achFirstWin', descKey: 'achFirstWinDesc' },
+  { id: 'easy_under_60', titleKey: 'achEasyUnder60', descKey: 'achEasyUnder60Desc' },
+  { id: 'medium_under_120', titleKey: 'achMediumUnder120', descKey: 'achMediumUnder120Desc' },
+  { id: 'hard_under_180', titleKey: 'achHardUnder180', descKey: 'achHardUnder180Desc' },
+  { id: 'no_hint_win', titleKey: 'achNoHint', descKey: 'achNoHintDesc' },
+  { id: 'perfect_moves', titleKey: 'achPerfect', descKey: 'achPerfectDesc' },
 ];
 
 function loadAchievements() {
@@ -1273,22 +1253,27 @@ function checkAchievementsOnWin() {
 function updateAchievementsUI() {
   if (!achievementsList) return;
   const store = loadAchievements();
+  const t = i18n();
   const html = achievementsDef.map(def => {
     const hit = !!store[def.id];
     const d = hit ? new Date(store[def.id].at) : null;
     const when = hit ? `${d.getMonth()+1}-${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}` : '';
-    return `<li class="flex items-center justify-between ${hit ? 'text-emerald-600' : 'text-slate-500'}"><span>${hit ? '✅' : '⬜️'} ${escapeHtml(def.title)} <span class="text-xs text-slate-400">${escapeHtml(def.desc)}</span></span>${when ? `<span class="text-xs text-slate-400">${escapeHtml(when)}</span>` : ''}</li>`;
+    const title = t[def.titleKey] || def.titleKey;
+    const desc = t[def.descKey] || def.descKey;
+    return `<li class="flex items-center justify-between ${hit ? 'text-emerald-600' : 'text-slate-500'}"><span>${hit ? '✅' : '⬜️'} ${escapeHtml(title)} <span class="text-xs text-slate-400">${escapeHtml(desc)}</span></span>${when ? `<span class="text-xs text-slate-400">${escapeHtml(when)}</span>` : ''}</li>`;
   }).join('');
   achievementsList.innerHTML = html;
 }
 
 function openAchievements(newIds) {
   updateAchievementsUI();
-  if (!achievementsModal) return;
-  achievementsModal.classList.remove('hidden');
-  achievementsModal.classList.add('flex');
+  showModal(achievementsModal);
   if (achievementsNew) {
-    if (newIds && newIds.length) { achievementsNew.textContent = `新解锁 ${newIds.length} 项`; achievementsNew.classList.remove('hidden'); }
+    if (newIds && newIds.length) {
+      const t = i18n();
+      achievementsNew.textContent = (t.achNewUnlock || '').replace('{n}', newIds.length);
+      achievementsNew.classList.remove('hidden');
+    }
     else achievementsNew.classList.add('hidden');
   }
 }
@@ -1365,5 +1350,7 @@ function importDataFromObj(obj) {
     updateStatsUI();
     updateAchievementsUI();
     initGame(difficultyEl.value);
-  } catch {}
+  } catch (e) {
+    logError('import_data_failed', { message: e instanceof Error ? e.message : String(e) });
+  }
 }

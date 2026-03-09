@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "format: 格式化",
+            "type": "npm",
+            "script": "format",
+            "problemMatcher": [],
+            "group": { "kind": "build", "isDefault": true }
+        },
+        {
+            "label": "test: 运行测试",
+            "type": "npm",
+            "script": "test",
+            "problemMatcher": [],
+            "group": { "kind": "test", "isDefault": true }
+        },
+        {
+            "label": "lint: 代码检查",
+            "type": "npm",
+            "script": "lint",
+            "problemMatcher": []
+        }
+    ]
+}

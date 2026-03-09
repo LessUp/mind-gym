@@ -13,7 +13,6 @@ pnpm-debug.log*
 
 # Editor junk
 .idea/
-.vscode/
 *.swp
 *.swo
 
