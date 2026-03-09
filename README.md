@@ -1,5 +1,6 @@
-# Remember
+# Mind Gym
 
+[![CI](https://github.com/<your-account>/mind-gym/actions/workflows/ci.yml/badge.svg)](https://github.com/<your-account>/mind-gym/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?logo=javascript&logoColor=black)
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-CDN-06B6D4?logo=tailwindcss&logoColor=white)
@@ -18,7 +19,7 @@
 - **间隔复现（Spaced Reinforcement）**：对易错卡面施加权重，在后续局中优先出现，支持导出/导入持久保存。
 - **回忆测验（Delayed Recall）**：通关后立即进行 6 真 + 3 伪的再认测验，统计精确率与召回率。
 - **Emoji N-back 模式**：单按钮（J 键）判定，与 N 步前是否相同，统计准确率与反应时，强化工作记忆。
-- **多语言支持**：中文 / English / 自动（遵循浏览器语言）。
+- **完整 i18n 覆盖**：中文 / English / 自动（遵循浏览器语言），所有 UI 文案与 toast 均由 i18n 驱动。
 - **新手引导与快捷键提示**：首次访问自动弹窗，随时可从工具栏打开，汇总玩法与操作快捷键。
 - **PWA 友好**：内置 Service Worker，缓存 Tailwind CDN，离线访问样式不丢失。
 
@@ -28,14 +29,11 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/<your-account>/remember.git
-cd remember
+git clone https://github.com/<your-account>/mind-gym.git
+cd mind-gym
 
 # 2. 启动本地静态服务器（任选其一）
-# 例如使用 npm serve（需 Node.js 环境）
-npm install --global serve
-serve .
-
+npx serve .
 # 或者直接在浏览器中打开 index.html
 ```
 
@@ -45,18 +43,48 @@ serve .
 
 ## 🛠 技术栈
 
-- **语言**：原生 HTML / JavaScript
+- **语言**：原生 HTML / JavaScript (ES2022)
 - **样式**：Tailwind CSS（通过 CDN 注入）
 - **存储**：`localStorage` 用于设置、统计、成就、间隔复现数据等
+- **测试**：Jest 29 + jsdom
+- **CI**：GitHub Actions（Node 20 / 22 矩阵）
 - **构建**：无构建流程，专注纯前端
 
-## 📊 主要模块
+## 📊 项目结构
 
-| 模块 | 说明 |
-| --- | --- |
-| `index.html` | 主页面，包含各类模态窗口、工具栏与交互控件 |
-| `app.js` | 游戏逻辑、自适应系统、统计管理、N-back 模式等核心功能 |
-| `sw.js` | Service Worker，缓存静态资源与 Tailwind CDN |
+```
+mind-gym/
+├── index.html              # 主页面，UI 结构与模态窗口
+├── app.js                  # 游戏核心：逻辑、自适应、统计、N-back、i18n 调度
+├── sw.js                   # Service Worker，缓存静态资源与 Tailwind CDN
+├── manifest.webmanifest    # PWA 清单
+├── src/
+│   ├── keys.js             # localStorage 键名管理
+│   ├── utils.js            # 通用工具（shuffle、seeded RNG、escapeHtml）
+│   ├── storage.js          # 数据持久化（设置、统计、成就、排行榜）
+│   ├── i18n.js             # 国际化词典（zh / en）与语言检测
+│   ├── effects.js          # 音效（Web Audio API）与震动反馈
+│   ├── pools.js            # 卡面素材池（emoji / 数字 / 字母 / 形状 / 颜色）
+│   ├── timer.js            # 计时器（正计时 / 倒计时）
+│   ├── confetti.js         # 胜利粒子动画（Canvas 2D）
+│   ├── ui.js               # DOM 元素绑定（集中 getElementById）
+│   └── ui-events.js        # 事件绑定（集中 addEventListener）
+├── __tests__/
+│   └── adaptive.test.js    # 自适应系统与新手引导单元测试
+├── scripts/
+│   └── prepare-deploy.sh   # 部署打包脚本（→ dist/）
+├── .github/workflows/
+│   ├── ci.yml              # CI：测试 + 部署包验证
+│   ├── deploy.yml          # GitHub Pages 自动部署
+│   └── pr-title.yml        # Semantic PR 标题校验
+├── assets/
+│   └── icon.svg            # PWA 图标
+├── package.json            # 项目元数据与脚本
+├── jest.config.js          # Jest 配置
+├── .editorconfig           # 编辑器统一配置
+├── .gitattributes          # Git 属性（行尾、二进制标记）
+└── .gitignore
+```
 
 ## 🧠 当前训练模式
 
@@ -86,7 +114,7 @@ serve .
 - [ ] **交错训练**：混合多种卡面集合，促进迁移学习。
 - [ ] **N-back 扩展**：加入位置 N-back、双模态（视觉+听觉）与自适应 N 调节。
 - [x] **新手引导与快捷键提示**：帮助用户快速理解玩法与快捷操作。
-- [ ] **多语言扩展**：继续补充文案与国际化能力。
+- [x] **完整 i18n 覆盖**：所有 UI 文案、toast 消息、统计面板均通过 i18n 驱动。
 
 欢迎通过 Issue 或 PR 贡献更多训练模式或研究性玩法！
 
@@ -110,13 +138,24 @@ serve .
   npm install
   npm test
   ```
-- GitHub Actions 会在 Node.js 18 与 20 上并行运行测试，并验证部署包可被正确产出（`npm run prepare:deploy`）。
+- GitHub Actions 会在 Node.js 20 与 22 上并行运行测试，并验证部署包可被正确产出（`npm run prepare:deploy`）。
 - 推送到 `main` 将自动触发 Pages 部署流程，生成的静态资源位于 `dist/` 目录。
 
 ### 部署与打包
 
 - 运行 `npm run prepare:deploy` 将核心静态资源复制到 `dist/`，供静态托管或 CDN 发布。
 - GitHub Pages 工作流会复用该目录进行自动发布，默认包含 `index.html`、`app.js`、`sw.js` 与 `manifest.webmanifest`。
+
+## 🔧 工程质量
+
+| 维度 | 实践 |
+| --- | --- |
+| **XSS 防护** | 所有 `innerHTML` 构造均通过 `escapeHtml()` 转义用户/数据值 |
+| **国际化** | 统一 i18n 词典驱动，无硬编码文案，支持中/英/自动 |
+| **数据安全** | `localStorage` 读写均包裹 `try/catch`，防止 quota 或隐私模式异常 |
+| **可维护性** | `applyLanguage()` 采用数据驱动映射，避免重复 `getElementById` |
+| **模块化** | UMD 模式拆分 10 个功能模块，浏览器/Node 双环境兼容 |
+| **CI** | Node 20/22 矩阵测试 + 部署包验证 + Semantic PR 标题校验 |
 
 ## 📄 许可证
 

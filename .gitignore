@@ -16,14 +16,19 @@ pnpm-debug.log*
 .vscode/
 *.swp
 *.swo
-.DS_Store
-Thumbs.db
+
+# Coverage
+coverage/
 
 # Cache & tooling
 .vercel/
 .netlify/
 .tmp/
 .cache/
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Local data exports/imports
 *.bak

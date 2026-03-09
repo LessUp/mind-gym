@@ -37,10 +37,16 @@
     return arr;
   }
 
+  function escapeHtml(str) {
+    const s = String(str);
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   return {
     shuffle,
     seedFromDate,
     mulberry32,
     seededShuffle,
+    escapeHtml,
   };
 });

@@ -36,6 +36,11 @@
       settingCardFace: '卡面主题', cardFaceEmoji: 'Emoji', cardFaceNumbers: '数字', cardFaceLetters: '字母', cardFaceShapes: '形状', cardFaceColors: '颜色',
       backupLabel: '数据备份', export: '导出', import: '导入', resetData: '重置数据', settingsCancel: '取消', settingsSave: '保存',
       recallTitle: '回忆测验', recallDesc: '请从下列选项中勾选本局中出现过的卡面。', recallSkip: '跳过', recallSubmit: '提交',
+      statsTotalGames: '总局数', statsWins: '胜局数', statsWinRate: '胜率', statsAvgTime: '平均用时（胜局）', statsAvgMoves: '平均步数（胜局）', statsAvgHints: '平均提示（胜局）', statsAvgCombo: '平均最高连击（胜局）', statsHistoryBest: '历史最佳', statsRecallLabel: '回忆测验', statsPrecision: '精确率', statsRecall: '召回率', statsNbackLabel: 'N-back', statsAvgAcc: '平均准确率', statsAvgRt: '平均反应时', statsTimes: '次',
+      toastUnlockAchievement: '解锁成就', toastDailyDone: '每日挑战完成', toastDailyStarted: '已开启今日挑战', toastImportOk: '导入成功', toastImportFail: '导入失败', toastCopied: '已复制到剪贴板',
+      comboLabel: '连击', nbackResult: 'N-back 结果', nbackAccuracy: '准确率', nbackAvgRt: '平均RT', recallResult: '回忆测验',
+      shareTitle: '记忆翻牌成绩', shareText: '记忆翻牌', timeFmt: '用时', stepsFmt: '步',
+      leaderboardEmpty: '暂无记录', resetConfirm: '确定清空本地所有成绩与设置吗？该操作不可恢复。',
       nback: 'N-back', nbackTitle: 'N-back 训练', nbackNLabel: 'N 值', nbackSpeedLabel: '节奏(ms)', nbackLenLabel: '长度', nbackHint: '按 J 判定“与 N 步前相同”', nbackStart: '开始', nbackClose: '关闭', nbackStop: '停止',
       guide: '指南', guideTitle: '快速上手指南', guideIntro: '第一次游玩？按照下面的步骤开始训练。',
       guideBasicsTitle: '基础操作', guideBasics: [
@@ -79,6 +84,11 @@
       settingCardFace: 'Card face', cardFaceEmoji: 'Emoji', cardFaceNumbers: 'Numbers', cardFaceLetters: 'Letters', cardFaceShapes: 'Shapes', cardFaceColors: 'Colors',
       backupLabel: 'Backup', export: 'Export', import: 'Import', resetData: 'Reset data', settingsCancel: 'Cancel', settingsSave: 'Save',
       recallTitle: 'Recall Test', recallDesc: 'Please select all items that appeared this round.', recallSkip: 'Skip', recallSubmit: 'Submit',
+      statsTotalGames: 'Total games', statsWins: 'Wins', statsWinRate: 'Win rate', statsAvgTime: 'Avg time (wins)', statsAvgMoves: 'Avg moves (wins)', statsAvgHints: 'Avg hints (wins)', statsAvgCombo: 'Avg best combo (wins)', statsHistoryBest: 'All-time best', statsRecallLabel: 'Recall test', statsPrecision: 'Precision', statsRecall: 'Recall', statsNbackLabel: 'N-back', statsAvgAcc: 'Avg accuracy', statsAvgRt: 'Avg RT', statsTimes: 'sessions',
+      toastUnlockAchievement: 'Achievement unlocked', toastDailyDone: 'Daily challenge completed', toastDailyStarted: 'Daily challenge started', toastImportOk: 'Import succeeded', toastImportFail: 'Import failed', toastCopied: 'Copied to clipboard',
+      comboLabel: 'Combo', nbackResult: 'N-back result', nbackAccuracy: 'Accuracy', nbackAvgRt: 'Avg RT', recallResult: 'Recall test',
+      shareTitle: 'Memory Match Score', shareText: 'Memory Match', timeFmt: 'Time', stepsFmt: 'moves',
+      leaderboardEmpty: 'No records yet', resetConfirm: 'Clear all local data and settings? This cannot be undone.',
       nback: 'N-back', nbackTitle: 'N-back Training', nbackNLabel: 'N', nbackSpeedLabel: 'Pace(ms)', nbackLenLabel: 'Length', nbackHint: 'Press J when it matches N-back', nbackStart: 'Start', nbackClose: 'Close', nbackStop: 'Stop',
       guide: 'Guide', guideTitle: 'Quick Start Guide', guideIntro: 'New here? Follow these steps to begin your training.',
       guideBasicsTitle: 'Basics', guideBasics: [

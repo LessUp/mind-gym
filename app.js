@@ -111,7 +111,6 @@ let paused = false;
 let hintsLeft = 0;
 let isPreviewing = false;
 let hintsUsed = 0;
-let hintCooldown = false;
 const DEFAULT_SETTINGS = { sound: true, vibrate: true, previewSeconds: 1, accent: "indigo", theme: "auto", motion: "auto", volume: 0.5, soundPack: "clear", cardFace: "emoji", gameMode: "classic", countdown: { easy: 90, medium: 150, hard: 240 }, language: 'auto', adaptive: false, spaced: false };
 let settings = { ...DEFAULT_SETTINGS };
 let dailyActive = false;
@@ -140,10 +139,6 @@ function formatTime(s) {
   return __RememberTimer__.formatTime(s);
 }
 
-function ensureAudio() {
-  return __RememberEffects__.ensureAudio();
-}
-
 function beep(f, dur, type = "sine", vol = 0.05) {
   __RememberEffects__.beep(f, dur, type, vol);
 }
@@ -162,10 +157,9 @@ const ACCENTS = {
   rose: { frontBg: 'bg-rose-100', frontText: 'text-rose-700', progressBg: 'bg-rose-500', ring: 'ring-rose-400' },
 };
 
-const numbersPool = __RememberPools__ && __RememberPools__.numbersPool ? __RememberPools__.numbersPool : [];
-const lettersPool = __RememberPools__ && __RememberPools__.lettersPool ? __RememberPools__.lettersPool : [];
-const shapesPool = __RememberPools__ && __RememberPools__.shapesPool ? __RememberPools__.shapesPool : [];
-const colorsPool = __RememberPools__ && __RememberPools__.colorsPool ? __RememberPools__.colorsPool : [];
+function escapeHtml(str) {
+  return __RememberUtils__.escapeHtml(str);
+}
 
 function logLifecycle(event, detail = {}) {
   try {
@@ -247,13 +241,7 @@ function runConfetti(duration = 1400) {
   __RememberConfetti__.runConfetti(confettiCanvas, isReducedMotion, duration);
 }
 
-function settingsKey() { return __RememberKeys__.settingsKey(); }
-function lbKey(k) { return __RememberKeys__.lbKey(k); }
-function achKey() { return __RememberKeys__.achKey(); }
-function statsKey() { return __RememberKeys__.statsKey(); }
 function adaptiveKey() { return __RememberKeys__.adaptiveKey(); }
-function spacedKey(theme) { return __RememberKeys__.spacedKey(theme); }
-function dailyKey(dateStr, diff) { return __RememberKeys__.dailyKey(dateStr, diff); }
 function todayStr() { return __RememberKeys__.todayStr(); }
 
 function seedFromDate(dateStr, diff, theme) {
@@ -293,15 +281,16 @@ function updateStatsUI() {
   const avgRecall = s.recallAttempts > 0 ? Math.round((s.recallSum / s.recallAttempts) * 100) + '%' : '—';
   const avgNBackAcc = s.nbackAttempts > 0 ? Math.round((s.nbackAccSum / s.nbackAttempts) * 100) + '%' : '—';
   const avgNBackRt = s.nbackRtCount > 0 ? Math.round(s.nbackRtSum / s.nbackRtCount) + 'ms' : '—';
+  const t = i18n();
   statsListEl.innerHTML = [
-    `<li>总局数：<span class="font-semibold">${s.games}</span></li>`,
-    `<li>胜局数：<span class="font-semibold">${s.wins}</span>（胜率 ${winRate}）</li>`,
-    `<li>平均用时（胜局）：<span class="font-semibold">${avgTime}</span></li>`,
-    `<li>平均步数（胜局）：<span class="font-semibold">${avgMoves}</span></li>`,
-    `<li>平均提示（胜局）：<span class="font-semibold">${avgHints}</span></li>`,
-    `<li>平均最高连击（胜局）：<span class="font-semibold">${avgCombo}</span>，历史最佳：<span class="font-semibold">${s.bestCombo || 0}</span></li>`,
-    `<li>回忆测验（${s.recallAttempts || 0} 次）精确率：<span class=\"font-semibold\">${avgPrecision}</span> · 召回率：<span class=\"font-semibold\">${avgRecall}</span></li>`,
-    `<li>N-back（${s.nbackAttempts || 0} 次）平均准确率：<span class=\"font-semibold\">${avgNBackAcc}</span> · 平均反应时：<span class=\"font-semibold\">${avgNBackRt}</span></li>`,
+    `<li>${t.statsTotalGames}：<span class="font-semibold">${s.games}</span></li>`,
+    `<li>${t.statsWins}：<span class="font-semibold">${s.wins}</span>（${t.statsWinRate} ${winRate}）</li>`,
+    `<li>${t.statsAvgTime}：<span class="font-semibold">${avgTime}</span></li>`,
+    `<li>${t.statsAvgMoves}：<span class="font-semibold">${avgMoves}</span></li>`,
+    `<li>${t.statsAvgHints}：<span class="font-semibold">${avgHints}</span></li>`,
+    `<li>${t.statsAvgCombo}：<span class="font-semibold">${avgCombo}</span>，${t.statsHistoryBest}：<span class="font-semibold">${s.bestCombo || 0}</span></li>`,
+    `<li>${t.statsRecallLabel}（${s.recallAttempts || 0} ${t.statsTimes}）${t.statsPrecision}：<span class="font-semibold">${avgPrecision}</span> · ${t.statsRecall}：<span class="font-semibold">${avgRecall}</span></li>`,
+    `<li>${t.statsNbackLabel}（${s.nbackAttempts || 0} ${t.statsTimes}）${t.statsAvgAcc}：<span class="font-semibold">${avgNBackAcc}</span> · ${t.statsAvgRt}：<span class="font-semibold">${avgNBackRt}</span></li>`,
   ].join('');
 }
 function openStats() {
@@ -377,14 +366,15 @@ function saveLeaderboard(k, arr) {
 function updateLeaderboardUI() {
   if (!leaderboardList) return;
   const list = loadLeaderboard(currentDifficulty);
+  const t = i18n();
   if (!list.length) {
-    leaderboardList.innerHTML = '<li class="text-slate-500">暂无记录</li>';
+    leaderboardList.innerHTML = `<li class="text-slate-500">${t.leaderboardEmpty}</li>`;
     return;
   }
   const html = list.map((e, i) => {
     const d = new Date(e.at || Date.now());
     const dateStr = `${d.getMonth() + 1}-${d.getDate()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
-    return `<li>${i + 1}. ${formatTime(e.time)} · ${e.moves}步 <span class="text-slate-400">• ${dateStr}</span></li>`;
+    return `<li>${i + 1}. ${formatTime(e.time)} · ${e.moves} ${t.stepsFmt} <span class="text-slate-400">• ${dateStr}</span></li>`;
   }).join("");
   leaderboardList.innerHTML = html;
 }
@@ -427,10 +417,6 @@ function resumeGame() {
 
 function shuffle(arr) {
   return __RememberUtils__.shuffle(arr);
-}
-
-function bestKey(k) {
-  return __RememberKeys__.bestKey(k);
 }
 
 function loadBest(k) {
@@ -650,7 +636,8 @@ function onWin() {
   if (!prev) better = true; else if (curr.time < prev.time) better = true; else if (curr.time === prev.time && curr.moves < prev.moves) better = true;
   if (better) saveBest(currentDifficulty, curr);
   updateBestUI();
-  winStatsEl.textContent = `用时 ${formatTime(elapsed)} · ${moves} 步`;
+  const t = i18n();
+  winStatsEl.textContent = `${t.timeFmt} ${formatTime(elapsed)} · ${moves} ${t.stepsFmt}`;
   const stars = getRating(elapsed, moves, currentDifficulty, hintsUsed, maxComboThisGame);
   logLifecycle('game_win', {
     difficulty: currentDifficulty,
@@ -676,13 +663,13 @@ function onWin() {
   updateLeaderboardUI();
   runConfetti();
   const unlocked = checkAchievementsOnWin();
-  if (unlocked.length) showToast(`解锁成就 ×${unlocked.length}`);
+  if (unlocked.length) showToast(`${t.toastUnlockAchievement} ×${unlocked.length}`);
   updateAchievementsUI();
   openRecallTest();
   // Daily complete
   if (dailyActive) {
     __RememberStorage__.markDailyDone(todayStr(), currentDifficulty);
-    showToast('每日挑战完成');
+    showToast(t.toastDailyDone);
   }
 }
 
@@ -804,12 +791,13 @@ if (typeof document !== 'undefined') {
     onGameModeChange: () => { if (countdownConfigEl) countdownConfigEl.classList.toggle('hidden', !(settingGameMode.value === 'countdown')); },
     onVolumeInput: () => { if (settingVolumeValue) settingVolumeValue.textContent = `${settingVolume.value}%`; },
     onShare: async () => {
-      const text = `记忆翻牌 | 难度 ${difficultyEl.options[difficultyEl.selectedIndex].text} | 用时 ${formatTime(elapsed)} | 步数 ${moves}`;
+      const t = i18n();
+      const text = `${t.shareText} | ${t.difficulty} ${difficultyEl.options[difficultyEl.selectedIndex].text} | ${t.timeFmt} ${formatTime(elapsed)} | ${t.movesLabel} ${moves}`;
       try {
-        if (navigator.share) await navigator.share({ title: "记忆翻牌成绩", text });
+        if (navigator.share) await navigator.share({ title: t.shareTitle, text });
         else if (navigator.clipboard) {
           await navigator.clipboard.writeText(text);
-          alert("已复制到剪贴板");
+          alert(t.toastCopied);
         } else {
           alert(text);
         }
@@ -824,9 +812,10 @@ if (typeof document !== 'undefined') {
     },
     onDailyOpen: () => {
       if (dailyInfoEl) {
+        const t = i18n();
         const date = todayStr();
-        const status = __RememberStorage__.isDailyDone(date, difficultyEl.value) ? '已完成' : '未完成';
-        dailyInfoEl.textContent = `今日 ${date} · 难度：${difficultyEl.options[difficultyEl.selectedIndex].text} · 状态：${status}`;
+        const status = __RememberStorage__.isDailyDone(date, difficultyEl.value) ? t.completed : t.notCompleted;
+        dailyInfoEl.textContent = `${t.today} ${date} · ${t.difficulty}：${difficultyEl.options[difficultyEl.selectedIndex].text} · ${t.status}：${status}`;
       }
       if (dailyModal) {
         dailyModal.classList.remove('hidden');
@@ -846,7 +835,7 @@ if (typeof document !== 'undefined') {
         dailyModal.classList.add('hidden');
         dailyModal.classList.remove('flex');
       }
-      showToast('已开启今日挑战');
+      showToast(i18n().toastDailyStarted);
       initGame(difficultyEl.value);
     },
     onStatsOpen: openStats,
@@ -868,10 +857,9 @@ if (typeof document !== 'undefined') {
       else startNBack();
     },
     onResetData: () => {
-      if (!confirm('确定清空本地所有成绩与设置吗？该操作不可恢复。')) return;
+      if (!confirm(i18n().resetConfirm)) return;
       const keys = __RememberStorage__.listAllKeys();
       __RememberStorage__.removeKeysByPrefix(keys, 'memory_match_');
-      __RememberStorage__.removeKeysByPrefix(keys, 'memory_match_best_');
       location.reload();
     },
     onExport: exportData,
@@ -883,9 +871,9 @@ if (typeof document !== 'undefined') {
         const text = await f.text();
         const obj = JSON.parse(text);
         importDataFromObj(obj);
-        showToast('导入成功');
+        showToast(i18n().toastImportOk);
       } catch (_) {
-        showToast('导入失败');
+        showToast(i18n().toastImportFail);
       } finally {
         if (importFile) importFile.value = '';
       }
@@ -1009,7 +997,8 @@ function finishNBack() {
   if (nbackRtCount > 0) { s.nbackRtSum = (s.nbackRtSum || 0) + nbackRtSum; s.nbackRtCount = (s.nbackRtCount || 0) + nbackRtCount; }
   saveStats(s);
   updateStatsUI();
-  showToast(`N-back 结果 · 准确率 ${Math.round(acc*100)}%${nbackRtCount>0?` · 平均RT ${avgRt}ms`:''}`);
+  const t = i18n();
+  showToast(`${t.nbackResult} · ${t.nbackAccuracy} ${Math.round(acc*100)}%${nbackRtCount>0?` · ${t.nbackAvgRt} ${avgRt}ms`:''}`);
 }
 
 function openRecallTest() {
@@ -1029,10 +1018,11 @@ function openRecallTest() {
   recallCorrectSet = new Set(trues);
   // 渲染
   recallChoicesEl.innerHTML = items.map((it, i) => {
+    const ev = escapeHtml(it.v);
     if (theme === 'colors') {
-      return `<label class="flex items-center gap-2 border rounded-md p-2"><input type="checkbox" data-v="${it.v}" class="h-4 w-4"/><span class="inline-block w-6 h-6 rounded" style="background:${it.v}"></span></label>`;
+      return `<label class="flex items-center gap-2 border rounded-md p-2"><input type="checkbox" data-v="${ev}" class="h-4 w-4"/><span class="inline-block w-6 h-6 rounded" style="background:${ev}"></span></label>`;
     } else {
-      return `<label class="flex items-center gap-2 border rounded-md p-2"><input type="checkbox" data-v="${it.v}" class="h-4 w-4"/><span class="text-xl">${it.v}</span></label>`;
+      return `<label class="flex items-center gap-2 border rounded-md p-2"><input type="checkbox" data-v="${ev}" class="h-4 w-4"/><span class="text-xl">${ev}</span></label>`;
     }
   }).join('');
   recallModal.classList.remove('hidden');
@@ -1054,7 +1044,8 @@ function submitRecallTest() {
   s.recallSum = (s.recallSum || 0) + rec;
   saveStats(s);
   updateStatsUI();
-  showToast(`回忆测验 · 精确率 ${Math.round(prec*100)}% · 召回率 ${Math.round(rec*100)}%`);
+  const t = i18n();
+  showToast(`${t.recallResult} · ${t.statsPrecision} ${Math.round(prec*100)}% · ${t.statsRecall} ${Math.round(rec*100)}%`);
   recallModal.classList.add('hidden');
   recallModal.classList.remove('flex');
 }
@@ -1069,115 +1060,89 @@ function i18n() {
   return __RememberI18n__.i18n(currentLang());
 }
 
+  // Mapping: element id → i18n key (where id differs from key, use [id, key])
+  const I18N_TEXT_MAP = [
+    'pageTitle', 'pageSubtitle',
+    'difficultyLabel', 'difficultyEasy', 'difficultyMedium', 'difficultyHard',
+    'timeLabel', 'movesLabel', 'bestLabel', 'leaderboardTitle',
+    'winTitle', 'loseTitle', 'loseDesc',
+    'statsTitle', 'achievementsTitle', 'dailyTitle', 'settingsTitle',
+    'recallTitle', 'recallDesc', 'recallSkip', 'recallSubmit',
+    'nbackTitle', 'nbackNLabel', 'nbackSpeedLabel', 'nbackLenLabel', 'nbackHint',
+    'guideTitle', 'guideIntro', 'guideBasicsTitle', 'guideAdvancedTitle', 'guideShortcutsTitle',
+    'accentIndigo', 'accentEmerald', 'accentRose',
+    'themeAuto', 'themeLight', 'themeDark',
+    'motionAuto', 'motionOn', 'motionOff',
+    'soundPackClear', 'soundPackElectro', 'soundPackSoft',
+    'languageAuto', 'languageZh', 'languageEn',
+    'gameModeClassic', 'gameModeCountdown',
+    'cardFaceEmoji', 'cardFaceNumbers', 'cardFaceLetters', 'cardFaceShapes', 'cardFaceColors',
+    'backupLabel',
+    // [elementId, i18nKey] pairs for labels where the id has a "Label" suffix
+    ['settingSoundLabel', 'settingSound'], ['settingVibrateLabel', 'settingVibrate'],
+    ['settingPreviewLabel', 'settingPreview'], ['settingAccentLabel', 'settingAccent'],
+    ['settingThemeLabel', 'settingTheme'], ['settingMotionLabel', 'settingMotion'],
+    ['settingVolumeLabel', 'settingVolume'], ['settingSoundPackLabel', 'settingSoundPack'],
+    ['settingAdaptiveLabel', 'settingAdaptive'], ['settingSpacedLabel', 'settingSpaced'],
+    ['settingLanguageLabel', 'settingLanguage'], ['settingGameModeLabel', 'settingGameMode'],
+    ['countdownEasyLabel', 'countdownEasy'], ['countdownMediumLabel', 'countdownMedium'],
+    ['countdownHardLabel', 'countdownHard'], ['settingCardFaceLabel', 'settingCardFace'],
+    ['guideNoShowLabel', 'guideNoShow'], ['guideOpenHint', 'guideOpenHint'],
+  ];
+
   function applyLanguage() {
     const t = i18n();
-    const pageTitleEl = document.getElementById('pageTitle'); if (pageTitleEl) pageTitleEl.textContent = t.pageTitle;
-    const pageSubtitleEl = document.getElementById('pageSubtitle'); if (pageSubtitleEl) pageSubtitleEl.textContent = t.pageSubtitle;
-    const difficultyLabelEl = document.getElementById('difficultyLabel'); if (difficultyLabelEl) difficultyLabelEl.textContent = t.difficultyLabel;
-    const difficultyEasyEl = document.getElementById('difficultyEasy'); if (difficultyEasyEl) difficultyEasyEl.textContent = t.difficultyEasy;
-    const difficultyMediumEl = document.getElementById('difficultyMedium'); if (difficultyMediumEl) difficultyMediumEl.textContent = t.difficultyMedium;
-    const difficultyHardEl = document.getElementById('difficultyHard'); if (difficultyHardEl) difficultyHardEl.textContent = t.difficultyHard;
-    const timeLabelEl = document.getElementById('timeLabel'); if (timeLabelEl) timeLabelEl.textContent = t.timeLabel;
-    const movesLabelEl = document.getElementById('movesLabel'); if (movesLabelEl) movesLabelEl.textContent = t.movesLabel;
-    const bestLabelEl = document.getElementById('bestLabel'); if (bestLabelEl) bestLabelEl.textContent = t.bestLabel;
-    const leaderboardTitleEl = document.getElementById('leaderboardTitle'); if (leaderboardTitleEl) leaderboardTitleEl.textContent = t.leaderboardTitle;
-    const winTitleEl = document.getElementById('winTitle'); if (winTitleEl) winTitleEl.textContent = t.winTitle;
-    const loseTitleEl = document.getElementById('loseTitle'); if (loseTitleEl) loseTitleEl.textContent = t.loseTitle;
-    const loseDescEl = document.getElementById('loseDesc'); if (loseDescEl) loseDescEl.textContent = t.loseDesc;
-    const statsTitleEl = document.getElementById('statsTitle'); if (statsTitleEl) statsTitleEl.textContent = t.statsTitle;
-    const achievementsTitleEl = document.getElementById('achievementsTitle'); if (achievementsTitleEl) achievementsTitleEl.textContent = t.achievementsTitle;
-    const dailyTitleEl = document.getElementById('dailyTitle'); if (dailyTitleEl) dailyTitleEl.textContent = t.dailyTitle;
-    const settingsTitleEl = document.getElementById('settingsTitle'); if (settingsTitleEl) settingsTitleEl.textContent = t.settingsTitle;
-    const recallTitleEl = document.getElementById('recallTitle'); if (recallTitleEl) recallTitleEl.textContent = t.recallTitle;
-    const recallDescEl = document.getElementById('recallDesc'); if (recallDescEl) recallDescEl.textContent = t.recallDesc;
-    const recallSkip = document.getElementById('recallSkip'); if (recallSkip) recallSkip.textContent = t.recallSkip;
-  const recallSubmit = document.getElementById('recallSubmit'); if (recallSubmit) recallSubmit.textContent = t.recallSubmit;
-  const nbackTitle = document.getElementById('nbackTitle'); if (nbackTitle) nbackTitle.textContent = t.nbackTitle;
-  const nbackNLabel = document.getElementById('nbackNLabel'); if (nbackNLabel) nbackNLabel.textContent = t.nbackNLabel;
-  const nbackSpeedLabel = document.getElementById('nbackSpeedLabel'); if (nbackSpeedLabel) nbackSpeedLabel.textContent = t.nbackSpeedLabel;
-  const nbackLenLabel = document.getElementById('nbackLenLabel'); if (nbackLenLabel) nbackLenLabel.textContent = t.nbackLenLabel;
-  const nbackHint = document.getElementById('nbackHint'); if (nbackHint) nbackHint.textContent = t.nbackHint;
-  if (nbackStartBtn) nbackStartBtn.textContent = t.nbackStart;
-  if (nbackCloseBtn) nbackCloseBtn.textContent = t.nbackClose;
-  if (newGameBtn) newGameBtn.textContent = t.newGame;
-  if (settingsBtn) settingsBtn.textContent = t.settings;
-  if (achievementsBtn) achievementsBtn.textContent = t.achievements;
-  if (statsBtn) statsBtn.textContent = t.stats;
-  if (dailyBtn) dailyBtn.textContent = t.daily;
-  const nbackBtnEl = document.getElementById('nbackBtn'); if (nbackBtnEl) nbackBtnEl.textContent = t.nback;
-  if (playAgainBtn) playAgainBtn.textContent = t.playAgain;
-  if (shareBtn) shareBtn.textContent = t.share;
-  if (closeModalBtn) closeModalBtn.textContent = t.back;
-  if (resumeBtn) resumeBtn.textContent = t.resume;
-  if (failRetryBtn) failRetryBtn.textContent = t.retry;
-  if (failCloseBtn) failCloseBtn.textContent = t.back;
-    if (achievementsClose) achievementsClose.textContent = t.close;
-    if (statsClose) statsClose.textContent = t.close;
-    if (dailyCloseBtn) dailyCloseBtn.textContent = t.close;
-    if (dailyStartBtn) dailyStartBtn.textContent = t.dailyStart;
-    const settingsSoundLabelEl = document.getElementById('settingSoundLabel'); if (settingsSoundLabelEl) settingsSoundLabelEl.textContent = t.settingSound;
-    const settingsVibrateLabelEl = document.getElementById('settingVibrateLabel'); if (settingsVibrateLabelEl) settingsVibrateLabelEl.textContent = t.settingVibrate;
-    const settingsPreviewLabelEl = document.getElementById('settingPreviewLabel'); if (settingsPreviewLabelEl) settingsPreviewLabelEl.textContent = t.settingPreview;
-    const settingsAccentLabelEl = document.getElementById('settingAccentLabel'); if (settingsAccentLabelEl) settingsAccentLabelEl.textContent = t.settingAccent;
-    const accentIndigoEl = document.getElementById('accentIndigo'); if (accentIndigoEl) accentIndigoEl.textContent = t.accentIndigo;
-    const accentEmeraldEl = document.getElementById('accentEmerald'); if (accentEmeraldEl) accentEmeraldEl.textContent = t.accentEmerald;
-    const accentRoseEl = document.getElementById('accentRose'); if (accentRoseEl) accentRoseEl.textContent = t.accentRose;
-    const settingsThemeLabelEl = document.getElementById('settingThemeLabel'); if (settingsThemeLabelEl) settingsThemeLabelEl.textContent = t.settingTheme;
-    const themeAutoEl = document.getElementById('themeAuto'); if (themeAutoEl) themeAutoEl.textContent = t.themeAuto;
-    const themeLightEl = document.getElementById('themeLight'); if (themeLightEl) themeLightEl.textContent = t.themeLight;
-    const themeDarkEl = document.getElementById('themeDark'); if (themeDarkEl) themeDarkEl.textContent = t.themeDark;
-    const settingsMotionLabelEl = document.getElementById('settingMotionLabel'); if (settingsMotionLabelEl) settingsMotionLabelEl.textContent = t.settingMotion;
-    const motionAutoEl = document.getElementById('motionAuto'); if (motionAutoEl) motionAutoEl.textContent = t.motionAuto;
-    const motionOnEl = document.getElementById('motionOn'); if (motionOnEl) motionOnEl.textContent = t.motionOn;
-    const motionOffEl = document.getElementById('motionOff'); if (motionOffEl) motionOffEl.textContent = t.motionOff;
-    const settingsVolumeLabelEl = document.getElementById('settingVolumeLabel'); if (settingsVolumeLabelEl) settingsVolumeLabelEl.textContent = t.settingVolume;
-    const settingsSoundPackLabelEl = document.getElementById('settingSoundPackLabel'); if (settingsSoundPackLabelEl) settingsSoundPackLabelEl.textContent = t.settingSoundPack;
-    const soundPackClearEl = document.getElementById('soundPackClear'); if (soundPackClearEl) soundPackClearEl.textContent = t.soundPackClear;
-    const soundPackElectroEl = document.getElementById('soundPackElectro'); if (soundPackElectroEl) soundPackElectroEl.textContent = t.soundPackElectro;
-    const soundPackSoftEl = document.getElementById('soundPackSoft'); if (soundPackSoftEl) soundPackSoftEl.textContent = t.soundPackSoft;
-    const settingsAdaptiveLabelEl = document.getElementById('settingAdaptiveLabel'); if (settingsAdaptiveLabelEl) settingsAdaptiveLabelEl.textContent = t.settingAdaptive;
-    const settingsSpacedLabelEl = document.getElementById('settingSpacedLabel'); if (settingsSpacedLabelEl) settingsSpacedLabelEl.textContent = t.settingSpaced;
-    const settingsLanguageLabelEl = document.getElementById('settingLanguageLabel'); if (settingsLanguageLabelEl) settingsLanguageLabelEl.textContent = t.settingLanguage;
-    const languageAutoEl = document.getElementById('languageAuto'); if (languageAutoEl) languageAutoEl.textContent = t.languageAuto;
-    const languageZhEl = document.getElementById('languageZh'); if (languageZhEl) languageZhEl.textContent = t.languageZh;
-    const languageEnEl = document.getElementById('languageEn'); if (languageEnEl) languageEnEl.textContent = t.languageEn;
-    const settingsGameModeLabelEl = document.getElementById('settingGameModeLabel'); if (settingsGameModeLabelEl) settingsGameModeLabelEl.textContent = t.settingGameMode;
-    const gameModeClassicEl = document.getElementById('gameModeClassic'); if (gameModeClassicEl) gameModeClassicEl.textContent = t.gameModeClassic;
-    const gameModeCountdownEl = document.getElementById('gameModeCountdown'); if (gameModeCountdownEl) gameModeCountdownEl.textContent = t.gameModeCountdown;
-    const countdownEasyLabelEl = document.getElementById('countdownEasyLabel'); if (countdownEasyLabelEl) countdownEasyLabelEl.textContent = t.countdownEasy;
-    const countdownMediumLabelEl = document.getElementById('countdownMediumLabel'); if (countdownMediumLabelEl) countdownMediumLabelEl.textContent = t.countdownMedium;
-    const countdownHardLabelEl = document.getElementById('countdownHardLabel'); if (countdownHardLabelEl) countdownHardLabelEl.textContent = t.countdownHard;
-    const settingsCardFaceLabelEl = document.getElementById('settingCardFaceLabel'); if (settingsCardFaceLabelEl) settingsCardFaceLabelEl.textContent = t.settingCardFace;
-    const cardFaceEmojiEl = document.getElementById('cardFaceEmoji'); if (cardFaceEmojiEl) cardFaceEmojiEl.textContent = t.cardFaceEmoji;
-    const cardFaceNumbersEl = document.getElementById('cardFaceNumbers'); if (cardFaceNumbersEl) cardFaceNumbersEl.textContent = t.cardFaceNumbers;
-    const cardFaceLettersEl = document.getElementById('cardFaceLetters'); if (cardFaceLettersEl) cardFaceLettersEl.textContent = t.cardFaceLetters;
-    const cardFaceShapesEl = document.getElementById('cardFaceShapes'); if (cardFaceShapesEl) cardFaceShapesEl.textContent = t.cardFaceShapes;
-    const cardFaceColorsEl = document.getElementById('cardFaceColors'); if (cardFaceColorsEl) cardFaceColorsEl.textContent = t.cardFaceColors;
-    const backupLabelEl = document.getElementById('backupLabel'); if (backupLabelEl) backupLabelEl.textContent = t.backupLabel;
-    const exportBtnEl = document.getElementById('exportBtn'); if (exportBtnEl) exportBtnEl.textContent = t.export;
-    const importBtnEl = document.getElementById('importBtn'); if (importBtnEl) importBtnEl.textContent = t.import;
-    const settingsCancelEl = document.getElementById('settingsCancel'); if (settingsCancelEl) settingsCancelEl.textContent = t.settingsCancel || t.close;
-    const settingsSaveEl = document.getElementById('settingsSave'); if (settingsSaveEl) settingsSaveEl.textContent = t.settingsSave || t.save;
-    const resetDataEl = document.getElementById('resetData'); if (resetDataEl) resetDataEl.textContent = t.resetData;
-    const guideBtnEl = document.getElementById('guideBtn'); if (guideBtnEl) guideBtnEl.textContent = t.guide;
-    const guideTitleEl = document.getElementById('guideTitle'); if (guideTitleEl) guideTitleEl.textContent = t.guideTitle;
-    const guideIntroEl = document.getElementById('guideIntro'); if (guideIntroEl) guideIntroEl.textContent = t.guideIntro;
-  const guideBasicsTitleEl = document.getElementById('guideBasicsTitle'); if (guideBasicsTitleEl) guideBasicsTitleEl.textContent = t.guideBasicsTitle;
-  if (guideBasicsList) guideBasicsList.innerHTML = (t.guideBasics || []).map(item => `<li>${item}</li>`).join('');
-  const guideAdvancedTitleEl = document.getElementById('guideAdvancedTitle'); if (guideAdvancedTitleEl) guideAdvancedTitleEl.textContent = t.guideAdvancedTitle;
-  if (guideAdvancedList) guideAdvancedList.innerHTML = (t.guideAdvanced || []).map(item => `<li>${item}</li>`).join('');
-  const guideShortcutsTitleEl = document.getElementById('guideShortcutsTitle'); if (guideShortcutsTitleEl) guideShortcutsTitleEl.textContent = t.guideShortcutsTitle;
-  if (guideShortcutsList) guideShortcutsList.innerHTML = (t.guideShortcuts || []).map(sc => `<li class="flex items-center gap-2"><span class="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200">${sc.key}</span><span>${sc.desc}</span></li>`).join('');
-  if (guideNoShowLabel) guideNoShowLabel.textContent = t.guideNoShow;
-  if (guideOpenHintEl) guideOpenHintEl.textContent = t.guideOpenHint;
-  if (guideCloseBtn) guideCloseBtn.textContent = t.guideClose;
-  // hint button with remaining span
-  if (hintBtn) {
-    hintBtn.innerHTML = `${t.hint} <span id="hintLeft" class="ml-1">${hintsLeft}</span>`;
-    hintLeftEl = document.getElementById('hintLeft');
+    // Batch: set textContent for all mapped elements
+    for (const entry of I18N_TEXT_MAP) {
+      const id = Array.isArray(entry) ? entry[0] : entry;
+      const key = Array.isArray(entry) ? entry[1] : entry;
+      const el = document.getElementById(id);
+      if (el) el.textContent = t[key] || '';
+    }
+    // Buttons that are already bound as module-level variables
+    const btnMap = [
+      [nbackStartBtn, 'nbackStart'], [nbackCloseBtn, 'nbackClose'],
+      [newGameBtn, 'newGame'], [settingsBtn, 'settings'],
+      [achievementsBtn, 'achievements'], [statsBtn, 'stats'], [dailyBtn, 'daily'],
+      [playAgainBtn, 'playAgain'], [shareBtn, 'share'],
+      [closeModalBtn, 'back'], [resumeBtn, 'resume'],
+      [failRetryBtn, 'retry'], [failCloseBtn, 'back'],
+      [achievementsClose, 'close'], [statsClose, 'close'],
+      [dailyCloseBtn, 'close'], [dailyStartBtn, 'dailyStart'],
+      [guideCloseBtn, 'guideClose'],
+    ];
+    for (const [el, key] of btnMap) {
+      if (el) el.textContent = t[key] || '';
+    }
+    // Elements with fallback keys
+    const fbMap = [
+      ['settingsCancel', 'settingsCancel', 'close'],
+      ['settingsSave', 'settingsSave', 'save'],
+    ];
+    for (const [id, key, fb] of fbMap) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = t[key] || t[fb] || '';
+    }
+    // Special: nbackBtn, exportBtn, importBtn, resetData, guideBtn
+    const idKeyMap = [
+      ['nbackBtn', 'nback'], ['exportBtn', 'export'], ['importBtn', 'import'],
+      ['resetData', 'resetData'], ['guideBtn', 'guide'],
+    ];
+    for (const [id, key] of idKeyMap) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = t[key] || '';
+    }
+    // Guide lists (innerHTML)
+    if (guideBasicsList) guideBasicsList.innerHTML = (t.guideBasics || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    if (guideAdvancedList) guideAdvancedList.innerHTML = (t.guideAdvanced || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+    if (guideShortcutsList) guideShortcutsList.innerHTML = (t.guideShortcuts || []).map(sc => `<li class="flex items-center gap-2"><span class="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-700 dark:bg-slate-700 dark:text-slate-200">${escapeHtml(sc.key)}</span><span>${escapeHtml(sc.desc)}</span></li>`).join('');
+    // Hint button with remaining span
+    if (hintBtn) {
+      hintBtn.innerHTML = `${escapeHtml(t.hint)} <span id="hintLeft" class="ml-1">${hintsLeft}</span>`;
+      hintLeftEl = document.getElementById('hintLeft');
+    }
+    updateControlsUI();
   }
-  updateControlsUI();
-}
 
 function useHint() {
   if (paused || isPreviewing) return;
@@ -1312,7 +1277,7 @@ function updateAchievementsUI() {
     const hit = !!store[def.id];
     const d = hit ? new Date(store[def.id].at) : null;
     const when = hit ? `${d.getMonth()+1}-${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}` : '';
-    return `<li class="flex items-center justify-between ${hit ? 'text-emerald-600' : 'text-slate-500'}"><span>${hit ? '✅' : '⬜️'} ${def.title} <span class="text-xs text-slate-400">${def.desc}</span></span>${when ? `<span class="text-xs text-slate-400">${when}</span>` : ''}</li>`;
+    return `<li class="flex items-center justify-between ${hit ? 'text-emerald-600' : 'text-slate-500'}"><span>${hit ? '✅' : '⬜️'} ${escapeHtml(def.title)} <span class="text-xs text-slate-400">${escapeHtml(def.desc)}</span></span>${when ? `<span class="text-xs text-slate-400">${escapeHtml(when)}</span>` : ''}</li>`;
   }).join('');
   achievementsList.innerHTML = html;
 }
@@ -1338,7 +1303,7 @@ function showToast(msg) {
 
 function showCombo(n) {
   if (!comboToastEl) return;
-  comboToastEl.textContent = `连击 ×${n}`;
+  comboToastEl.textContent = `${i18n().comboLabel} ×${n}`;
   comboToastEl.classList.remove('hidden');
   clearTimeout(showCombo._t);
   showCombo._t = setTimeout(() => comboToastEl.classList.add('hidden'), 900);
