@@ -1,7 +1,10 @@
 # Mind Gym
 
-[![CI](https://github.com/<your-account>/mind-gym/actions/workflows/ci.yml/badge.svg)](https://github.com/<your-account>/mind-gym/actions/workflows/ci.yml)
+[![CI](https://github.com/LessUp/mind-gym/actions/workflows/ci.yml/badge.svg)](https://github.com/LessUp/mind-gym/actions/workflows/ci.yml)
+[![App](https://img.shields.io/badge/App-GitHub%20Pages-blue?logo=github)](https://lessup.github.io/mind-gym/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+简体中文 | [English](README.en.md)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?logo=javascript&logoColor=black)
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-CDN-06B6D4?logo=tailwindcss&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8?logo=pwa&logoColor=white)
@@ -29,7 +32,7 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/<your-account>/mind-gym.git
+git clone https://github.com/LessUp/mind-gym.git
 cd mind-gym
 
 # 2. 启动本地静态服务器（任选其一）
